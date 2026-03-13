@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import Editor, { type OnMount } from '@monaco-editor/react'
 import { useCallback, useMemo } from 'react'
 
@@ -34,7 +33,8 @@ type Props = {
   onRun: () => void
   consumedInputCount: number
   needsMoreInput: boolean
-  fileBrowserSlot?: ReactNode
+  fileCount: number
+  onToggleFiles: () => void
 }
 
 export function CodeEditor({
@@ -48,7 +48,8 @@ export function CodeEditor({
   onRun,
   consumedInputCount,
   needsMoreInput,
-  fileBrowserSlot,
+  fileCount,
+  onToggleFiles,
 }: Props) {
   const prompts = useMemo(() => extractInputPrompts(code), [code])
   const hasInputs = prompts.length > 0
@@ -79,15 +80,25 @@ export function CodeEditor({
     <div className="pane editor-pane">
       <div className="pane__header">
         <span className="pane__title">Source</span>
-        <button
-          className="btn btn--primary"
-          disabled={isLoading}
-          onClick={onRun}
-        >
-          {isLoading ? 'Running\u2026' : 'Run'}
-        </button>
+        <div className="pane__actions">
+          {fileCount > 0 && (
+            <button
+              className="btn btn--sm"
+              onClick={onToggleFiles}
+              type="button"
+            >
+              Files ({fileCount})
+            </button>
+          )}
+          <button
+            className="btn btn--primary"
+            disabled={isLoading}
+            onClick={onRun}
+          >
+            {isLoading ? 'Running\u2026' : 'Run'}
+          </button>
+        </div>
       </div>
-      {fileBrowserSlot}
       <div className="editor-wrap">
         <Editor
           defaultLanguage="python"

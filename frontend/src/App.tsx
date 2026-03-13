@@ -11,7 +11,7 @@ import type {
   VisualizationResponse,
 } from './types'
 import { CodeEditor } from './components/CodeEditor'
-import { FileBrowser, type PyFile } from './components/FileBrowser'
+import { FilePanel, type PyFile } from './components/FileBrowser'
 import { TraceControls } from './components/TraceControls'
 import { ControlFlowContext } from './components/ControlFlowContext'
 import { FrameInspector } from './components/FrameInspector'
@@ -103,10 +103,12 @@ export default function App() {
       : true,
   )
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+
   const [pyFiles, setPyFiles] = useState<PyFile[]>([])
   const [folderName, setFolderName] = useState('')
-  const [showFileBrowser, setShowFileBrowser] = useState(false)
+  const [filePanelOpen, setFilePanelOpen] = useState(false)
   const [activeFilePath, setActiveFilePath] = useState<string | null>(null)
+  const hasFolder = pyFiles.length > 0
 
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null)
@@ -138,24 +140,22 @@ export default function App() {
       const root = files[0]?.webkitRelativePath?.split('/')[0] ?? 'Folder'
       setFolderName(root)
       setPyFiles(pythonFiles)
-      setShowFileBrowser(true)
+      setFilePanelOpen(true)
+      setActiveFilePath(null)
       e.target.value = ''
     },
     [],
   )
 
-  const loadFile = useCallback(
-    async (file: File, path: string) => {
-      const text = await file.text()
-      setCode(text)
-      setStdin('')
-      setResult(null)
-      setRequestError(null)
-      setStepIndex(0)
-      setActiveFilePath(path)
-    },
-    [],
-  )
+  const loadFile = useCallback(async (file: File, path: string) => {
+    const text = await file.text()
+    setCode(text)
+    setStdin('')
+    setResult(null)
+    setRequestError(null)
+    setStepIndex(0)
+    setActiveFilePath(path)
+  }, [])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -199,12 +199,7 @@ export default function App() {
 
     if (step?.previousLine) {
       decorations.push({
-        range: new monaco.Range(
-          step.previousLine,
-          1,
-          step.previousLine,
-          1,
-        ),
+        range: new monaco.Range(step.previousLine, 1, step.previousLine, 1),
         options: {
           isWholeLine: true,
           className: 'executed-line',
@@ -226,12 +221,7 @@ export default function App() {
     const onLastStep = !step || stepIndex >= totalSteps - 1
     if (result?.error?.line && onLastStep) {
       decorations.push({
-        range: new monaco.Range(
-          result.error.line,
-          1,
-          result.error.line,
-          1,
-        ),
+        range: new monaco.Range(result.error.line, 1, result.error.line, 1),
         options: {
           isWholeLine: true,
           className: 'error-line',
@@ -281,6 +271,7 @@ export default function App() {
     setResult(null)
     setRequestError(null)
     setStepIndex(0)
+    setActiveFilePath(null)
   }, [])
 
   const toggleSection = useCallback((id: string) => {
@@ -367,7 +358,19 @@ export default function App() {
         </div>
       </header>
 
-      <main className="workspace">
+      <main
+        className={`workspace${filePanelOpen && hasFolder ? ' workspace--with-files' : ''}`}
+      >
+        {filePanelOpen && hasFolder && (
+          <FilePanel
+            files={pyFiles}
+            folderName={folderName}
+            activePath={activeFilePath}
+            onSelect={loadFile}
+            onClose={() => setFilePanelOpen(false)}
+          />
+        )}
+
         <CodeEditor
           code={code}
           stdin={stdin}
@@ -379,17 +382,8 @@ export default function App() {
           onRun={run}
           consumedInputCount={consumedInputCount}
           needsMoreInput={needsMoreInput}
-          fileBrowserSlot={
-            showFileBrowser ? (
-              <FileBrowser
-                files={pyFiles}
-                folderName={folderName}
-                activePath={activeFilePath}
-                onSelect={loadFile}
-                onClose={() => setShowFileBrowser(false)}
-              />
-            ) : null
-          }
+          fileCount={hasFolder ? pyFiles.length : 0}
+          onToggleFiles={() => setFilePanelOpen((o) => !o)}
         />
 
         <section className="pane trace-pane">

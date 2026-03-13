@@ -14,7 +14,7 @@ type Props = {
   onClose: () => void
 }
 
-export function FileBrowser({
+export function FilePanel({
   files,
   folderName,
   activePath,
@@ -30,54 +30,55 @@ export function FileBrowser({
   }, [files, search])
 
   return (
-    <div className="fb">
-      <div className="fb__header">
-        <span className="fb__folder">{folderName}</span>
-        <span className="fb__count">
-          {files.length} .py file{files.length !== 1 ? 's' : ''}
-        </span>
+    <aside className="fp pane">
+      <div className="fp__header">
+        <div className="fp__title">
+          <span className="fp__folder">{folderName}</span>
+          <span className="fp__count">{files.length}</span>
+        </div>
         <button
-          className="btn btn--icon fb__close"
+          className="btn btn--icon"
           onClick={onClose}
-          title="Close"
+          title="Hide panel"
           type="button"
         >
           &times;
         </button>
       </div>
       {files.length > 5 && (
-        <div className="fb__search-wrap">
+        <div className="fp__search">
           <input
-            className="fb__search"
-            placeholder="Filter files\u2026"
+            className="fp__search-input"
+            placeholder="Filter..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       )}
-      <div className="fb__list">
+      <div className="fp__list">
         {filtered.length === 0 ? (
-          <div className="fb__empty">No matching files</div>
+          <div className="fp__empty">No matching files</div>
         ) : (
           filtered.map((f) => {
-            const displayPath = f.path.split('/').slice(1).join('/')
             const isActive = f.path === activePath
+            const parts = f.path.split('/').slice(1)
+            const dir =
+              parts.length > 1 ? parts.slice(0, -1).join('/') : null
+
             return (
               <button
                 key={f.path}
-                className={`fb__item${isActive ? ' fb__item--active' : ''}`}
+                className={`fp__item${isActive ? ' fp__item--active' : ''}`}
                 onClick={() => onSelect(f.file, f.path)}
                 type="button"
               >
-                <span className="fb__item-name">{f.name}</span>
-                {displayPath !== f.name && (
-                  <span className="fb__item-path">{displayPath}</span>
-                )}
+                <span className="fp__item-name">{f.name}</span>
+                {dir && <span className="fp__item-dir">{dir}</span>}
               </button>
             )
           })
         )}
       </div>
-    </div>
+    </aside>
   )
 }
