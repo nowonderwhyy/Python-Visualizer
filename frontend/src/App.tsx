@@ -1,6 +1,6 @@
 import Editor, { type OnMount } from '@monaco-editor/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { editor, Monaco } from 'monaco-editor'
+import type { editor } from 'monaco-editor'
 import './App.css'
 import { sampleInput, sampleProgram } from './sampleProgram'
 import type {
@@ -139,8 +139,8 @@ function App() {
       ? window.matchMedia('(prefers-color-scheme: dark)').matches
       : true,
   )
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
-  const monacoRef = useRef<Monaco | null>(null)
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
+  const monacoRef = useRef<Parameters<OnMount>[1] | null>(null)
   const decorationIdsRef = useRef<string[]>([])
 
   useEffect(() => {
