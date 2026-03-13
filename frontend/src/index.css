@@ -1,36 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 :root {
   color-scheme: dark;
-  --bg: #0b1020;
-  --bg-accent: radial-gradient(circle at top, rgba(99, 102, 241, 0.26), transparent 34%),
-    radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.14), transparent 22%),
-    linear-gradient(180deg, #0b1020 0%, #111827 100%);
-  --surface: rgba(15, 23, 42, 0.78);
-  --surface-elevated: rgba(30, 41, 59, 0.74);
-  --border: rgba(148, 163, 184, 0.18);
-  --border-strong: rgba(148, 163, 184, 0.3);
-  --text-primary: #f8fafc;
-  --text-muted: #cbd5e1;
-  --text-soft: #94a3b8;
-  --accent: #818cf8;
-  --accent-strong: #4f46e5;
-  --accent-faint: rgba(129, 140, 248, 0.35);
-  --danger: #fca5a5;
-  --shadow-lg:
-    0 26px 60px rgba(2, 6, 23, 0.42),
-    0 8px 24px rgba(2, 6, 23, 0.24);
-  --sans:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
-  --mono:
-    'JetBrains Mono', 'Fira Code', 'SFMono-Regular', ui-monospace, Monaco, Consolas,
-    monospace;
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface-hover: #1c2128;
+  --border: #30363d;
+  --border-subtle: #21262d;
+  --text-1: #e6edf3;
+  --text-2: #8b949e;
+  --text-3: #484f58;
+  --accent: #58a6ff;
+  --accent-emphasis: #1f6feb;
+  --accent-subtle: rgba(56, 139, 253, 0.1);
+  --green: #3fb950;
+  --green-subtle: rgba(63, 185, 80, 0.15);
+  --yellow: #d29922;
+  --yellow-subtle: rgba(210, 153, 34, 0.15);
+  --red: #f85149;
+  --red-subtle: rgba(248, 81, 73, 0.1);
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --radius: 6px;
+  --radius-sm: 4px;
+
   font-family: var(--sans);
-  font-synthesis: none;
-  font-weight: 400;
+  font-size: 14px;
   line-height: 1.5;
-  color: var(--text-muted);
+  color: var(--text-2);
   background: var(--bg);
-  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -38,85 +36,40 @@
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
-    --bg: #eef2ff;
-    --bg-accent: radial-gradient(circle at top, rgba(99, 102, 241, 0.14), transparent 35%),
-      linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-    --surface: rgba(255, 255, 255, 0.82);
-    --surface-elevated: rgba(248, 250, 252, 0.92);
-    --border: rgba(15, 23, 42, 0.08);
-    --border-strong: rgba(79, 70, 229, 0.18);
-    --text-primary: #0f172a;
-    --text-muted: #334155;
-    --text-soft: #64748b;
-    --accent: #4f46e5;
-    --accent-strong: #312e81;
-    --accent-faint: rgba(79, 70, 229, 0.22);
-    --danger: #b91c1c;
-    --shadow-lg:
-      0 24px 60px rgba(15, 23, 42, 0.08),
-      0 6px 20px rgba(15, 23, 42, 0.06);
+    --bg: #f6f8fa;
+    --surface: #ffffff;
+    --surface-hover: #f6f8fa;
+    --border: #d0d7de;
+    --border-subtle: #e8ecf0;
+    --text-1: #1f2328;
+    --text-2: #656d76;
+    --text-3: #8b949e;
+    --accent: #0969da;
+    --accent-emphasis: #0550ae;
+    --accent-subtle: rgba(9, 105, 218, 0.08);
+    --green: #1a7f37;
+    --green-subtle: rgba(26, 127, 55, 0.08);
+    --yellow: #9a6700;
+    --yellow-subtle: rgba(154, 103, 0, 0.08);
+    --red: #cf222e;
+    --red-subtle: rgba(207, 34, 46, 0.06);
   }
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  min-height: 100%;
 }
 
 body {
   margin: 0;
-  background: var(--bg-accent);
-  color: var(--text-muted);
 }
 
-#root {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 32px 24px 48px;
-}
-
-button,
-textarea {
-  font: inherit;
-}
-
-h1,
-h2,
-h3,
-p {
+h1, h2, h3, h4, p {
   margin: 0;
 }
 
-h1 {
-  margin-top: 16px;
-  color: var(--text-primary);
-  font-size: clamp(2.2rem, 4vw, 4rem);
-  line-height: 1;
-  letter-spacing: -0.05em;
-}
-
-h2 {
-  margin-top: 6px;
-  color: var(--text-primary);
-  font-size: 1.25rem;
-}
-
-h3 {
-  color: var(--text-primary);
-  font-size: 1rem;
-}
-
-a {
-  color: inherit;
-}
-
-@media (max-width: 900px) {
-  #root {
-    padding: 18px 14px 28px;
-  }
+button, input, textarea {
+  font: inherit;
 }
