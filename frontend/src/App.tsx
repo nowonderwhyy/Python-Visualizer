@@ -2,7 +2,7 @@ import { type OnMount } from '@monaco-editor/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { editor } from 'monaco-editor'
 import './App.css'
-import { sampleInput, sampleProgram } from './sampleProgram'
+import { samplePrograms, defaultSampleId } from './sampleProgram'
 import type { ExecutionStep, ObjectRecord, SerializedValue, VisualizationResponse } from './types'
 import { CodeEditor } from './components/CodeEditor'
 import { TraceControls } from './components/TraceControls'
@@ -14,31 +14,33 @@ function valueSignature(value: SerializedValue | undefined): string {
   return JSON.stringify(value)
 }
 
-function buildChangedVariableSet(
+function buildChangedVariableMap(
   previousStep: ExecutionStep | null,
   currentStep: ExecutionStep | null,
-): Set<string> {
-  if (!currentStep) return new Set()
+): Map<string, SerializedValue | null> {
+  if (!currentStep) return new Map()
 
   const prev = new Map(
     (previousStep?.frames ?? []).map((f) => [f.id, f.variables]),
   )
 
-  const changed = new Set<string>()
+  const changed = new Map<string, SerializedValue | null>()
   currentStep.frames.forEach((frame) => {
     const prevVars: Record<string, SerializedValue> = prev.get(frame.id) ?? {}
     Object.entries(frame.variables).forEach(([name, value]) => {
       if (valueSignature(prevVars[name]) !== valueSignature(value)) {
-        changed.add(`${frame.id}:${name}`)
+        changed.set(`${frame.id}:${name}`, prevVars[name] ?? null)
       }
     })
   })
   return changed
 }
 
+const defaultSample = samplePrograms.find((s) => s.id === defaultSampleId)!
+
 export default function App() {
-  const [code, setCode] = useState(sampleProgram)
-  const [stdin, setStdin] = useState(sampleInput)
+  const [code, setCode] = useState(defaultSample.code)
+  const [stdin, setStdin] = useState(defaultSample.stdin)
   const [result, setResult] = useState<VisualizationResponse | null>(null)
   const [requestError, setRequestError] = useState<string | null>(null)
   const [stepIndex, setStepIndex] = useState(0)
@@ -48,6 +50,7 @@ export default function App() {
       ? window.matchMedia('(prefers-color-scheme: dark)').matches
       : true,
   )
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null)
@@ -71,7 +74,7 @@ export default function App() {
   )
 
   const changedVars = useMemo(
-    () => buildChangedVariableSet(prevStep, step),
+    () => buildChangedVariableMap(prevStep, step),
     [prevStep, step],
   )
 
@@ -87,6 +90,7 @@ export default function App() {
     if (!ed || !monaco) return
 
     const decorations: editor.IModelDeltaDecoration[] = []
+
     if (step?.previousLine) {
       decorations.push({
         range: new monaco.Range(step.previousLine, 1, step.previousLine, 1),
@@ -107,8 +111,20 @@ export default function App() {
         },
       })
     }
+
+    if (result?.error?.line && !step) {
+      decorations.push({
+        range: new monaco.Range(result.error.line, 1, result.error.line, 1),
+        options: {
+          isWholeLine: true,
+          className: 'error-line',
+          linesDecorationsClassName: 'error-glyph',
+        },
+      })
+    }
+
     decorationsRef.current = ed.deltaDecorations(decorationsRef.current, decorations)
-  }, [step])
+  }, [step, result])
 
   const run = useCallback(async () => {
     setLoading(true)
@@ -130,6 +146,32 @@ export default function App() {
     }
   }, [code, stdin])
 
+  const loadSample = useCallback((id: string) => {
+    const sample = samplePrograms.find((s) => s.id === id)
+    if (!sample) return
+    setCode(sample.code)
+    setStdin(sample.stdin)
+    setResult(null)
+    setRequestError(null)
+    setStepIndex(0)
+  }, [])
+
+  const toggleSection = useCallback((id: string) => {
+    setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }))
+  }, [])
+
+  const currentLineText = step?.previousLine
+    ? code.split('\n')[step.previousLine - 1]?.trim()
+    : null
+
+  const stepEvent = step
+    ? step.event === 'exception'
+      ? 'exception'
+      : step.event === 'return'
+        ? 'return'
+        : 'line'
+    : null
+
   const stepStatus = step
     ? step.event === 'line'
       ? `L${step.previousLine ?? '?'} \u2192 L${step.nextLine ?? '?'}`
@@ -138,20 +180,25 @@ export default function App() {
         : `${step.details?.type ?? 'error'} at L${step.previousLine ?? '?'}`
     : null
 
+  const hasTrace = result !== null
+
   return (
     <div className="app">
       <header className="topbar">
         <span className="topbar__title">Python Visualizer</span>
         <div className="topbar__actions">
-          <button
-            className="btn"
-            onClick={() => {
-              setCode(sampleProgram)
-              setStdin(sampleInput)
-            }}
+          <select
+            className="btn sample-select"
+            onChange={(e) => { loadSample(e.target.value); e.target.value = '' }}
+            value=""
           >
-            Load sample
-          </button>
+            <option value="" disabled>
+              Load example&hellip;
+            </option>
+            {samplePrograms.map((s) => (
+              <option key={s.id} value={s.id}>{s.title}</option>
+            ))}
+          </select>
         </div>
       </header>
 
@@ -171,16 +218,27 @@ export default function App() {
           <div className="pane__header">
             <span className="pane__title">Trace</span>
             <div className="trace-status">
+              {stepEvent && (
+                <span className={`trace-status__event trace-status__event--${stepEvent}`}>
+                  {stepEvent}
+                </span>
+              )}
               {stepStatus && (
                 <span className="trace-status__line">{stepStatus}</span>
               )}
               {totalSteps > 0 && (
                 <span className="trace-status__step">
-                  Step {stepIndex + 1} of {totalSteps}
+                  {stepIndex + 1} / {totalSteps}
                 </span>
               )}
             </div>
           </div>
+
+          {currentLineText && (
+            <div className="trace-codeline">
+              <code>{currentLineText}</code>
+            </div>
+          )}
 
           <TraceControls
             currentIndex={stepIndex}
@@ -198,6 +256,9 @@ export default function App() {
             <span className="legend__item">
               <span className="legend__dot legend__dot--changed" /> changed
             </span>
+            <span className="legend__hint">
+              &larr; &rarr; step &middot; Space play
+            </span>
           </div>
 
           {requestError && <div className="error-banner">{requestError}</div>}
@@ -208,46 +269,81 @@ export default function App() {
             </div>
           )}
 
-          <div className="trace-body">
-            <div className="section">
-              <div className="section__header">
-                <span>Frames</span>
-                <span className="section__count">{step?.frames.length ?? 0}</span>
-              </div>
-              <div className="section__body">
-                <FrameInspector
-                  frames={step?.frames ?? []}
-                  objects={objectMap}
-                  changedVars={changedVars}
-                />
-              </div>
+          {!hasTrace ? (
+            <div className="trace-empty">
+              <div className="trace-empty__icon">&#x25B6;</div>
+              <p className="trace-empty__title">No trace yet</p>
+              <p className="trace-empty__hint">
+                Write Python on the left and click <strong>Run</strong> to
+                visualize execution step by step.
+              </p>
             </div>
+          ) : (
+            <div className="trace-body">
+              <div className="section">
+                <button
+                  className="section__header"
+                  onClick={() => toggleSection('frames')}
+                  type="button"
+                >
+                  <span className={`section__chevron${collapsed.frames ? '' : ' section__chevron--open'}`} />
+                  <span>Frames</span>
+                  <span className="section__count">{step?.frames.length ?? 0}</span>
+                </button>
+                {!collapsed.frames && (
+                  <div className="section__body">
+                    <FrameInspector
+                      frames={step?.frames ?? []}
+                      objects={objectMap}
+                      changedVars={changedVars}
+                    />
+                  </div>
+                )}
+              </div>
 
-            <div className="section">
-              <div className="section__header">
-                <span>Heap</span>
-                <span className="section__count">{step?.objects.length ?? 0}</span>
+              <div className="section">
+                <button
+                  className="section__header"
+                  onClick={() => toggleSection('heap')}
+                  type="button"
+                >
+                  <span className={`section__chevron${collapsed.heap ? '' : ' section__chevron--open'}`} />
+                  <span>Heap</span>
+                  <span className="section__count">{step?.objects.length ?? 0}</span>
+                </button>
+                {!collapsed.heap && (
+                  <div className="section__body">
+                    <ObjectInspector
+                      objects={step?.objects ?? []}
+                      objectMap={objectMap}
+                    />
+                  </div>
+                )}
               </div>
-              <div className="section__body">
-                <ObjectInspector
-                  objects={step?.objects ?? []}
-                  objectMap={objectMap}
-                />
-              </div>
-            </div>
 
-            <div className="section">
-              <div className="section__header">
-                <span>Output</span>
-              </div>
-              <div className="section__body">
-                <ConsoleOutput
-                  stdout={step?.stdout ?? ''}
-                  stdinConsumed={step?.stdinConsumed ?? []}
-                />
+              <div className="section">
+                <button
+                  className="section__header"
+                  onClick={() => toggleSection('output')}
+                  type="button"
+                >
+                  <span className={`section__chevron${collapsed.output ? '' : ' section__chevron--open'}`} />
+                  <span>Output</span>
+                  <span className="section__count">
+                    {(step?.stdout.length ?? 0) > 0 ? `${step!.stdout.length} chars` : ''}
+                  </span>
+                </button>
+                {!collapsed.output && (
+                  <div className="section__body">
+                    <ConsoleOutput
+                      stdout={step?.stdout ?? ''}
+                      stdinConsumed={step?.stdinConsumed ?? []}
+                    />
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          )}
         </section>
       </main>
     </div>
