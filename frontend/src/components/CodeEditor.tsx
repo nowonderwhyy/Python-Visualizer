@@ -1,4 +1,22 @@
 import Editor, { type OnMount } from '@monaco-editor/react'
+import { useCallback, useMemo } from 'react'
+
+const INPUT_RE = /\binput\s*\(\s*(?:f?(["'])(.*?)\1)?\s*\)/g
+
+function extractInputPrompts(code: string): string[] {
+  const prompts: string[] = []
+  let match
+  INPUT_RE.lastIndex = 0
+  while ((match = INPUT_RE.exec(code)) !== null) {
+    prompts.push(match[2] ?? '')
+  }
+  return prompts
+}
+
+function formatLabel(prompt: string, index: number): string {
+  const cleaned = prompt.replace(/[:?]\s*$/, '').trim()
+  return cleaned || `Input ${index + 1}`
+}
 
 type Props = {
   code: string
@@ -21,6 +39,27 @@ export function CodeEditor({
   isLoading,
   onRun,
 }: Props) {
+  const prompts = useMemo(() => extractInputPrompts(code), [code])
+  const hasInputs = prompts.length > 0
+  const stdinLines = useMemo(() => stdin.split('\n'), [stdin])
+  const fieldCount = Math.max(prompts.length, stdinLines.length)
+
+  const updateField = useCallback(
+    (index: number, value: string) => {
+      const lines = stdin.split('\n')
+      while (lines.length <= index) lines.push('')
+      lines[index] = value
+      onStdinChange(lines.join('\n'))
+    },
+    [stdin, onStdinChange],
+  )
+
+  const addField = useCallback(() => {
+    const lines = stdin.split('\n')
+    lines.push('')
+    onStdinChange(lines.join('\n'))
+  }, [stdin, onStdinChange])
+
   return (
     <div className="pane editor-pane">
       <div className="pane__header">
@@ -30,7 +69,7 @@ export function CodeEditor({
           disabled={isLoading}
           onClick={onRun}
         >
-          {isLoading ? 'Running…' : 'Run'}
+          {isLoading ? 'Running\u2026' : 'Run'}
         </button>
       </div>
       <div className="editor-wrap">
@@ -55,16 +94,39 @@ export function CodeEditor({
           value={code}
         />
       </div>
-      <div className="stdin-section">
-        <label className="stdin-label">stdin</label>
-        <textarea
-          className="stdin"
-          onChange={(e) => onStdinChange(e.target.value)}
-          placeholder="Input for input() calls, one per line"
-          rows={2}
-          value={stdin}
-        />
-      </div>
+      {hasInputs && (
+        <div className="stdin-section">
+          <div className="stdin-header">
+            <span className="stdin-label">Inputs</span>
+            <span className="stdin-hint">
+              {prompts.length} input() call{prompts.length !== 1 ? 's' : ''} detected
+            </span>
+          </div>
+          <div className="input-fields">
+            {Array.from({ length: fieldCount }, (_, i) => (
+              <div className="input-field" key={i}>
+                <span className="input-field__prompt">
+                  {formatLabel(prompts[i] ?? '', i)}
+                </span>
+                <input
+                  className="input-field__value"
+                  value={stdinLines[i] ?? ''}
+                  onChange={(e) => updateField(i, e.target.value)}
+                  placeholder="\u2026"
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            className="btn btn--add"
+            onClick={addField}
+            type="button"
+            title="Add another input value (for loops that call input())"
+          >
+            + Add input
+          </button>
+        </div>
+      )}
     </div>
   )
 }

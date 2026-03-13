@@ -167,11 +167,18 @@
 
 .stdin-section {
   border-top: 1px solid var(--border);
-  padding: 8px 14px;
+  padding: 8px 14px 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
+}
+
+.stdin-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .stdin-label {
@@ -182,23 +189,63 @@
   letter-spacing: 0.04em;
 }
 
-.stdin {
-  width: 100%;
-  padding: 6px 8px;
+.stdin-hint {
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.input-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-field__prompt {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-2);
+  min-width: 0;
+  flex-shrink: 1;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.input-field__value {
+  flex: 1;
+  padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text-1);
   font-family: var(--mono);
   font-size: 12px;
-  line-height: 1.4;
-  resize: vertical;
+  min-width: 0;
 }
 
-.stdin:focus {
+.input-field__value:focus {
   outline: 2px solid var(--accent-emphasis);
   outline-offset: -1px;
   border-color: transparent;
+}
+
+.input-field__value::placeholder {
+  color: var(--text-3);
+}
+
+.btn--add {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 2px;
 }
 
 /* ── Trace pane ── */
