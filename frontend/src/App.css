@@ -136,6 +136,19 @@
   cursor: pointer;
 }
 
+/* ── Seed input ── */
+
+.seed-input {
+  width: 64px;
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: center;
+}
+
+.seed-input::placeholder {
+  color: var(--text-3);
+}
+
 /* ── Editor pane ── */
 
 .editor-pane {
@@ -449,7 +462,8 @@
   border-top: none;
 }
 
-.section__header {
+.section__header,
+.section__header-static {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -457,7 +471,6 @@
   width: 100%;
   border: none;
   background: none;
-  cursor: pointer;
   font-size: 11px;
   font-weight: 600;
   font-family: var(--sans);
@@ -465,6 +478,10 @@
   letter-spacing: 0.04em;
   color: var(--text-3);
   text-align: left;
+}
+
+.section__header {
+  cursor: pointer;
   transition: background 0.1s;
 }
 
@@ -497,6 +514,92 @@
   padding: 0 14px 10px;
 }
 
+/* ── Control flow context ── */
+
+.cf {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cf__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.cf__item--loop {
+  background: rgba(130, 80, 223, 0.08);
+  border: 1px solid rgba(130, 80, 223, 0.2);
+}
+
+.cf__item--true {
+  background: var(--green-subtle);
+  border: 1px solid rgba(63, 185, 80, 0.25);
+}
+
+.cf__item--false {
+  background: var(--red-subtle);
+  border: 1px solid rgba(248, 81, 73, 0.2);
+}
+
+.cf__item--return {
+  background: var(--green-subtle);
+  border: 1px solid rgba(63, 185, 80, 0.25);
+}
+
+.cf__tag {
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.cf__tag--loop {
+  background: rgba(130, 80, 223, 0.15);
+  color: #a371f7;
+}
+
+.cf__tag--true {
+  background: rgba(63, 185, 80, 0.18);
+  color: var(--green);
+}
+
+.cf__tag--false {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--red);
+}
+
+.cf__tag--return {
+  background: rgba(63, 185, 80, 0.18);
+  color: var(--green);
+}
+
+.cf__code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.cf__iter {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: #a371f7;
+  flex-shrink: 0;
+}
+
 /* ── Frames ── */
 
 .frame-list {
@@ -525,6 +628,16 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text-1);
+}
+
+.frame__depth {
+  font-size: 10px;
+  font-weight: 600;
+  color: #a371f7;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(130, 80, 223, 0.12);
+  margin-left: 4px;
 }
 
 .frame__meta {
@@ -570,7 +683,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   padding: 5px 10px;
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -589,24 +702,65 @@
   font-size: 12px;
   color: var(--text-2);
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.var-row__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .var-row__values {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .var-row__prev {
-  opacity: 0.45;
+  opacity: 0.4;
   text-decoration: line-through;
 }
 
 .var-row__arrow {
   font-size: 10px;
   color: var(--yellow);
+}
+
+.var-row__badge {
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.var-row__badge--new {
+  background: var(--green-subtle);
+  color: var(--green);
+}
+
+.var-row__badge--reassigned {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.var-row__badge--mutated {
+  background: rgba(240, 136, 62, 0.12);
+  color: #f0883e;
+}
+
+.var-row__shared {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
 }
 
 /* ── Values ── */
@@ -845,6 +999,22 @@
 
   .val--bool {
     color: #1a7f37;
+  }
+
+  .cf__tag--loop {
+    color: #8250df;
+  }
+
+  .cf__iter {
+    color: #8250df;
+  }
+
+  .frame__depth {
+    color: #8250df;
+  }
+
+  .var-row__badge--mutated {
+    color: #bc4c00;
   }
 }
 

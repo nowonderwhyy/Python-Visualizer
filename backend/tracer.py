@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import builtins
 import inspect
 import io
@@ -18,11 +19,13 @@ MAX_REPR_LENGTH = 120
 MAX_STDOUT_CHARS = 8_000
 MAX_SERIALIZATION_DEPTH = 4
 
+_SENTINEL = object()
+
 
 def safe_repr(value: Any, *, max_length: int = MAX_REPR_LENGTH) -> str:
     try:
         rendered = repr(value)
-    except Exception:  # pragma: no cover - defensive fallback
+    except Exception:
         rendered = f"<unrepresentable {type(value).__name__}>"
 
     if len(rendered) > max_length:
@@ -33,6 +36,107 @@ def safe_repr(value: Any, *, max_length: int = MAX_REPR_LENGTH) -> str:
 def is_primitive(value: Any) -> bool:
     return value is None or isinstance(value, (bool, int, float, complex, str, bytes))
 
+
+# ---------------------------------------------------------------------------
+# AST analysis for control flow metadata
+# ---------------------------------------------------------------------------
+
+class CodeAnalyzer:
+    """Static analysis of Python source to extract control flow structure."""
+
+    def __init__(self, code: str) -> None:
+        self.line_types: dict[int, str] = {}
+        self.loop_headers: set[int] = set()
+        self.loop_info: dict[int, dict[str, int]] = {}
+        self.if_info: dict[int, dict[str, int]] = {}
+        self.scopes: list[dict[str, Any]] = []
+
+        try:
+            tree = ast.parse(code)
+            self._walk(tree)
+        except SyntaxError:
+            pass
+
+    def _walk(self, node: ast.AST) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.For):
+                self._handle_loop(child, "for")
+            elif isinstance(child, ast.While):
+                self._handle_loop(child, "while")
+            elif isinstance(child, ast.If):
+                self._handle_if(child, is_elif=False)
+            elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                self.line_types[child.lineno] = "def"
+            elif isinstance(child, ast.ClassDef):
+                self.line_types[child.lineno] = "class"
+            elif isinstance(child, ast.Return):
+                self.line_types[child.lineno] = "return"
+            elif isinstance(child, ast.Break):
+                self.line_types[child.lineno] = "break"
+            elif isinstance(child, ast.Continue):
+                self.line_types[child.lineno] = "continue"
+            self._walk(child)
+
+    def _handle_loop(self, node: ast.For | ast.While, loop_type: str) -> None:
+        self.line_types[node.lineno] = loop_type
+        self.loop_headers.add(node.lineno)
+
+        if node.body:
+            body_start = node.body[0].lineno
+            body_end = node.body[-1].end_lineno or node.body[-1].lineno
+            self.loop_info[node.lineno] = {
+                "bodyStart": body_start,
+                "bodyEnd": body_end,
+            }
+            self.scopes.append({
+                "type": loop_type,
+                "headerLine": node.lineno,
+                "bodyStart": body_start,
+                "bodyEnd": body_end,
+            })
+
+    def _handle_if(self, node: ast.If, *, is_elif: bool) -> None:
+        self.line_types[node.lineno] = "elif" if is_elif else "if"
+
+        if node.body:
+            body_start = node.body[0].lineno
+            body_end = node.body[-1].end_lineno or node.body[-1].lineno
+            self.if_info[node.lineno] = {"bodyStart": body_start}
+            self.scopes.append({
+                "type": "elif" if is_elif else "if",
+                "headerLine": node.lineno,
+                "bodyStart": body_start,
+                "bodyEnd": body_end,
+            })
+
+        if node.orelse:
+            if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
+                self._handle_if(node.orelse[0], is_elif=True)
+            else:
+                first = node.orelse[0]
+                last = node.orelse[-1]
+                self.line_types[first.lineno] = "else_body"
+                self.scopes.append({
+                    "type": "else",
+                    "headerLine": first.lineno,
+                    "bodyStart": first.lineno,
+                    "bodyEnd": last.end_lineno or last.lineno,
+                })
+
+    def get_containing_loops(self, line: int) -> list[dict[str, Any]]:
+        return [
+            s for s in self.scopes
+            if s["type"] in ("for", "while")
+            and s["headerLine"] <= line <= s["bodyEnd"]
+        ]
+
+    def get_metadata(self) -> dict[str, str]:
+        return {str(ln): lt for ln, lt in self.line_types.items()}
+
+
+# ---------------------------------------------------------------------------
+# Snapshot serialization (unchanged logic, extracted for clarity)
+# ---------------------------------------------------------------------------
 
 class SnapshotSerializer:
     def __init__(self) -> None:
@@ -176,13 +280,19 @@ class SnapshotSerializer:
         return rendered_frames
 
 
+# ---------------------------------------------------------------------------
+# Execution tracer with enhanced tracking
+# ---------------------------------------------------------------------------
+
 class PythonExecutionTracer:
-    def __init__(self, *, stdin_text: str = "") -> None:
+    def __init__(self, *, stdin_text: str = "", code: str = "") -> None:
         self.stdin_values = deque(stdin_text.splitlines())
         self.stdin_consumed: list[str] = []
         self.stdout = io.StringIO()
         self.steps: list[dict[str, Any]] = []
         self.last_seen_line: int | None = None
+        self.analyzer = CodeAnalyzer(code)
+        self.loop_counters: dict[int, int] = {}
 
     def scripted_input(self, prompt: Any = "") -> str:
         prompt_text = "" if prompt is None else str(prompt)
@@ -204,6 +314,11 @@ class PythonExecutionTracer:
             raise RuntimeError(f"Execution exceeded the {MAX_TRACE_STEPS} step limit.")
 
         if event == "line":
+            if frame.f_lineno in self.analyzer.loop_headers:
+                self.loop_counters[frame.f_lineno] = (
+                    self.loop_counters.get(frame.f_lineno, 0) + 1
+                )
+
             self._record_step(
                 frame,
                 event="line",
@@ -217,6 +332,7 @@ class PythonExecutionTracer:
                 event="return",
                 previous_line=frame.f_lineno,
                 next_line=None,
+                return_value=arg,
             )
         elif event == "exception":
             exc_type, exc_value, _ = arg
@@ -241,6 +357,7 @@ class PythonExecutionTracer:
         previous_line: int | None,
         next_line: int | None,
         details: dict[str, Any] | None = None,
+        return_value: Any = _SENTINEL,
     ) -> None:
         serializer = SnapshotSerializer()
         frames = serializer.snapshot_frames(frame)
@@ -254,12 +371,41 @@ class PythonExecutionTracer:
             "objects": list(serializer.objects.values()),
             "stdout": self._current_stdout(),
             "stdinConsumed": list(self.stdin_consumed),
+            "loopIterations": dict(self.loop_counters),
         }
+
+        if return_value is not _SENTINEL and return_value is not None:
+            step["returnValue"] = serializer.serialize(return_value)
+
+        target_line = next_line or previous_line
+        if target_line:
+            containing = self.analyzer.get_containing_loops(target_line)
+            if containing:
+                step["activeLoops"] = [
+                    {
+                        "type": scope["type"],
+                        "line": scope["headerLine"],
+                        "iteration": self.loop_counters.get(scope["headerLine"], 0),
+                    }
+                    for scope in containing
+                ]
 
         if details:
             step["details"] = details
 
         self.steps.append(step)
+
+    def _post_process(self) -> None:
+        """Infer condition results by comparing consecutive step transitions."""
+        for step in self.steps:
+            prev = step.get("previousLine")
+            nxt = step.get("nextLine")
+            if prev is None or nxt is None:
+                continue
+            if prev in self.analyzer.if_info:
+                step["conditionResult"] = nxt == self.analyzer.if_info[prev]["bodyStart"]
+            elif prev in self.analyzer.loop_info:
+                step["conditionResult"] = nxt == self.analyzer.loop_info[prev]["bodyStart"]
 
     def _current_stdout(self) -> str:
         output = self.stdout.getvalue()
@@ -284,19 +430,21 @@ def build_error_payload(error: BaseException) -> dict[str, Any]:
     }
 
 
-def visualize_python(code: str, *, stdin_text: str = "") -> dict[str, Any]:
+def visualize_python(
+    code: str, *, stdin_text: str = "", seed: int | None = None
+) -> dict[str, Any]:
     if not code.strip():
-        return {
-            "steps": [],
-            "stdout": "",
-            "error": None,
-        }
+        return {"steps": [], "stdout": "", "error": None, "lineMetadata": {}}
 
-    tracer = PythonExecutionTracer(stdin_text=stdin_text)
-    globals_scope = {"__name__": "__main__"}
+    tracer = PythonExecutionTracer(stdin_text=stdin_text, code=code)
+    globals_scope: dict[str, Any] = {"__name__": "__main__"}
     builtins_scope = builtins.__dict__.copy()
     builtins_scope["input"] = tracer.scripted_input
     globals_scope["__builtins__"] = builtins_scope
+
+    if seed is not None:
+        import random as _random
+        _random.seed(seed)
 
     try:
         compiled = compile(code, USER_FILENAME, "exec")
@@ -305,6 +453,7 @@ def visualize_python(code: str, *, stdin_text: str = "") -> dict[str, Any]:
             "steps": [],
             "stdout": "",
             "error": build_error_payload(error),
+            "lineMetadata": {},
         }
 
     try:
@@ -316,14 +465,18 @@ def visualize_python(code: str, *, stdin_text: str = "") -> dict[str, Any]:
             finally:
                 sys.settrace(previous_trace)
     except BaseException as error:
+        tracer._post_process()
         return {
             "steps": tracer.steps,
             "stdout": tracer.stdout.getvalue(),
             "error": build_error_payload(error),
+            "lineMetadata": tracer.analyzer.get_metadata(),
         }
 
+    tracer._post_process()
     return {
         "steps": tracer.steps,
         "stdout": tracer.stdout.getvalue(),
         "error": None,
+        "lineMetadata": tracer.analyzer.get_metadata(),
     }

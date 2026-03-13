@@ -10,12 +10,13 @@ from tracer import visualize_python
 class VisualizeRequest(BaseModel):
     code: str = Field(..., description="Python source code to execute")
     stdin: str = Field(default="", description="One input value per line")
+    seed: int | None = Field(default=None, description="Random seed for deterministic runs")
 
 
 app = FastAPI(
     title="Python Visualizer API",
     description="Execution tracing API for the educational Python visualizer.",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 app.add_middleware(
@@ -34,4 +35,4 @@ def healthcheck() -> dict[str, str]:
 
 @app.post("/api/visualize")
 def visualize(request: VisualizeRequest) -> dict:
-    return visualize_python(request.code, stdin_text=request.stdin)
+    return visualize_python(request.code, stdin_text=request.stdin, seed=request.seed)

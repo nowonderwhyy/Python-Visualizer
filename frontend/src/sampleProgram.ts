@@ -1,6 +1,7 @@
 export type SampleProgram = {
   id: string
   title: string
+  description: string
   code: string
   stdin: string
 }
@@ -9,6 +10,7 @@ export const samplePrograms: SampleProgram[] = [
   {
     id: 'hello',
     title: 'Hello World',
+    description: 'Variables, string concatenation, f-strings',
     code: `name = "World"
 greeting = "Hello, " + name + "!"
 print(greeting)
@@ -19,6 +21,7 @@ print(f"That's {length} characters")`,
   {
     id: 'calculator',
     title: 'Input & Arithmetic',
+    description: 'input(), arithmetic, lists, f-strings',
     code: `name = input("Learner name: ")
 x = 4
 y = x + 6
@@ -30,6 +33,7 @@ print(f"{name}: {total}")`,
   {
     id: 'loop',
     title: 'Loop & Accumulator',
+    description: 'for loop, range(), running total',
     code: `total = 0
 for i in range(1, 6):
     total = total + i
@@ -39,8 +43,34 @@ print(f"Final sum: {total}")`,
     stdin: '',
   },
   {
+    id: 'while-loop',
+    title: 'While Loop',
+    description: 'while condition, countdown, break',
+    code: `n = 10
+while n > 0:
+    if n == 5:
+        print("halfway!")
+    n = n - 2
+    print(f"n is now {n}")
+
+print("done")`,
+    stdin: '',
+  },
+  {
+    id: 'nested-loops',
+    title: 'Nested Loops',
+    description: 'Nested for loops, multiplication table',
+    code: `for row in range(1, 4):
+    for col in range(1, 4):
+        product = row * col
+        print(f"{row}x{col}={product}", end="  ")
+    print()`,
+    stdin: '',
+  },
+  {
     id: 'fizzbuzz',
     title: 'FizzBuzz',
+    description: 'if/elif/else branching in a loop',
     code: `for n in range(1, 16):
     if n % 15 == 0:
         print("FizzBuzz")
@@ -55,6 +85,7 @@ print(f"Final sum: {total}")`,
   {
     id: 'functions',
     title: 'Functions',
+    description: 'def, arguments, return values, call frames',
     code: `def greet(name):
     message = f"Hello, {name}!"
     return message
@@ -71,8 +102,23 @@ print(f"3 + 7 = {total}")`,
     stdin: '',
   },
   {
+    id: 'recursion',
+    title: 'Recursion',
+    description: 'Recursive factorial, call stack depth',
+    code: `def factorial(n):
+    if n <= 1:
+        return 1
+    result = n * factorial(n - 1)
+    return result
+
+answer = factorial(5)
+print(f"5! = {answer}")`,
+    stdin: '',
+  },
+  {
     id: 'data-structures',
     title: 'Data Structures',
+    description: 'Lists, dicts, iteration, mutation',
     code: `fruits = ["apple", "banana", "cherry"]
 fruits.append("date")
 print(f"Fruits: {fruits}")
@@ -86,8 +132,27 @@ for name, score in scores.items():
     stdin: '',
   },
   {
+    id: 'aliasing',
+    title: 'Aliasing & Mutation',
+    description: 'Shared references, mutation vs reassignment',
+    code: `a = [1, 2, 3]
+b = a
+b.append(4)
+print(f"a = {a}")
+print(f"b = {b}")
+print(f"a is b: {a is b}")
+
+c = a[:]
+c.append(5)
+print(f"a = {a}")
+print(f"c = {c}")
+print(f"a is c: {a is c}")`,
+    stdin: '',
+  },
+  {
     id: 'class',
     title: 'Simple Class',
+    description: 'Class definition, __init__, methods, instances',
     code: `class Dog:
     def __init__(self, name, breed):
         self.name = name
