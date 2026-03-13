@@ -11,6 +11,7 @@ import type {
   VisualizationResponse,
 } from './types'
 import { CodeEditor } from './components/CodeEditor'
+import { FileBrowser, type PyFile } from './components/FileBrowser'
 import { TraceControls } from './components/TraceControls'
 import { ControlFlowContext } from './components/ControlFlowContext'
 import { FrameInspector } from './components/FrameInspector'
@@ -102,10 +103,58 @@ export default function App() {
       : true,
   )
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [pyFiles, setPyFiles] = useState<PyFile[]>([])
+  const [folderName, setFolderName] = useState('')
+  const [showFileBrowser, setShowFileBrowser] = useState(false)
 
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null)
   const decorationsRef = useRef<string[]>([])
+  const folderInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const el = folderInputRef.current
+    if (el) {
+      el.setAttribute('webkitdirectory', '')
+      el.setAttribute('directory', '')
+    }
+  }, [])
+
+  const handleFolderSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (!files || files.length === 0) return
+
+      const pythonFiles: PyFile[] = Array.from(files)
+        .filter((f) => f.name.endsWith('.py'))
+        .map((f) => ({
+          name: f.name,
+          path: f.webkitRelativePath || f.name,
+          file: f,
+        }))
+        .sort((a, b) => a.path.localeCompare(b.path))
+
+      const root = files[0]?.webkitRelativePath?.split('/')[0] ?? 'Folder'
+      setFolderName(root)
+      setPyFiles(pythonFiles)
+      setShowFileBrowser(true)
+      e.target.value = ''
+    },
+    [],
+  )
+
+  const loadFile = useCallback(
+    async (file: File) => {
+      const text = await file.text()
+      setCode(text)
+      setStdin('')
+      setResult(null)
+      setRequestError(null)
+      setStepIndex(0)
+      setShowFileBrowser(false)
+    },
+    [],
+  )
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -272,6 +321,13 @@ export default function App() {
 
   return (
     <div className="app">
+      <input
+        ref={folderInputRef}
+        type="file"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFolderSelect}
+      />
       <header className="topbar">
         <span className="topbar__title">Python Visualizer</span>
         <div className="topbar__actions">
@@ -292,6 +348,13 @@ export default function App() {
               </option>
             ))}
           </select>
+          <button
+            className="btn"
+            onClick={() => folderInputRef.current?.click()}
+            type="button"
+          >
+            Open folder
+          </button>
           <input
             className="btn seed-input"
             onChange={(e) => setSeed(e.target.value)}
@@ -315,6 +378,16 @@ export default function App() {
           onRun={run}
           consumedInputCount={consumedInputCount}
           needsMoreInput={needsMoreInput}
+          fileBrowserSlot={
+            showFileBrowser ? (
+              <FileBrowser
+                files={pyFiles}
+                folderName={folderName}
+                onSelect={loadFile}
+                onClose={() => setShowFileBrowser(false)}
+              />
+            ) : null
+          }
         />
 
         <section className="pane trace-pane">

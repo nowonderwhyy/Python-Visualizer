@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import Editor, { type OnMount } from '@monaco-editor/react'
 import { useCallback, useMemo } from 'react'
 
@@ -33,6 +34,7 @@ type Props = {
   onRun: () => void
   consumedInputCount: number
   needsMoreInput: boolean
+  fileBrowserSlot?: ReactNode
 }
 
 export function CodeEditor({
@@ -46,6 +48,7 @@ export function CodeEditor({
   onRun,
   consumedInputCount,
   needsMoreInput,
+  fileBrowserSlot,
 }: Props) {
   const prompts = useMemo(() => extractInputPrompts(code), [code])
   const hasInputs = prompts.length > 0
@@ -89,6 +92,7 @@ export function CodeEditor({
           {isLoading ? 'Running\u2026' : 'Run'}
         </button>
       </div>
+      {fileBrowserSlot}
       <div className="editor-wrap">
         <Editor
           defaultLanguage="python"
