@@ -52,6 +52,12 @@ export type FrameSnapshot = {
   variables: Record<string, SerializedValue>
 }
 
+export type ActiveLoop = {
+  type: string
+  line: number
+  iteration: number
+}
+
 export type ExecutionStep = {
   index: number
   event: 'line' | 'return' | 'exception'
@@ -65,6 +71,10 @@ export type ExecutionStep = {
     type: string
     message: string
   }
+  returnValue?: SerializedValue
+  loopIterations?: Record<string, number>
+  activeLoops?: ActiveLoop[]
+  conditionResult?: boolean
 }
 
 export type VisualizationError = {
@@ -77,4 +87,10 @@ export type VisualizationResponse = {
   steps: ExecutionStep[]
   stdout: string
   error: VisualizationError
+  lineMetadata?: Record<string, string>
+}
+
+export type ChangeInfo = {
+  prevValue: SerializedValue | null
+  changeKind: 'new' | 'reassigned' | 'mutated'
 }
