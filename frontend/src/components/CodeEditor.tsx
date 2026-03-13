@@ -5,10 +5,14 @@ const INPUT_RE = /\binput\s*\(\s*(?:f?(["'])(.*?)\1)?\s*\)/g
 
 function extractInputPrompts(code: string): string[] {
   const prompts: string[] = []
-  let match
-  INPUT_RE.lastIndex = 0
-  while ((match = INPUT_RE.exec(code)) !== null) {
-    prompts.push(match[2] ?? '')
+  for (const line of code.split('\n')) {
+    const commentIdx = line.indexOf('#')
+    const effective = commentIdx >= 0 ? line.slice(0, commentIdx) : line
+    INPUT_RE.lastIndex = 0
+    let match
+    while ((match = INPUT_RE.exec(effective)) !== null) {
+      prompts.push(match[2] ?? '')
+    }
   }
   return prompts
 }
@@ -27,6 +31,8 @@ type Props = {
   onEditorMount: OnMount
   isLoading: boolean
   onRun: () => void
+  consumedInputCount: number
+  needsMoreInput: boolean
 }
 
 export function CodeEditor({
@@ -38,11 +44,22 @@ export function CodeEditor({
   onEditorMount,
   isLoading,
   onRun,
+  consumedInputCount,
+  needsMoreInput,
 }: Props) {
   const prompts = useMemo(() => extractInputPrompts(code), [code])
   const hasInputs = prompts.length > 0
   const stdinLines = useMemo(() => stdin.split('\n'), [stdin])
-  const fieldCount = Math.max(prompts.length, stdinLines.length)
+
+  const minFromRun = needsMoreInput
+    ? consumedInputCount + 1
+    : consumedInputCount
+  const baseCount = Math.max(prompts.length, minFromRun)
+  const lastLineHasContent =
+    stdinLines.length >= baseCount &&
+    stdinLines[stdinLines.length - 1]?.trim() !== ''
+  const fieldCount =
+    Math.max(baseCount, stdinLines.length) + (lastLineHasContent ? 1 : 0)
 
   const updateField = useCallback(
     (index: number, value: string) => {
@@ -80,7 +97,8 @@ export function CodeEditor({
           onMount={onEditorMount}
           options={{
             automaticLayout: true,
-            fontFamily: "'JetBrains Mono', 'Fira Code', ui-monospace, monospace",
+            fontFamily:
+              "'JetBrains Mono', 'Fira Code', ui-monospace, monospace",
             fontSize: 13,
             lineHeight: 20,
             minimap: { enabled: false },
@@ -99,7 +117,8 @@ export function CodeEditor({
           <div className="stdin-header">
             <span className="stdin-label">Inputs</span>
             <span className="stdin-hint">
-              {prompts.length} input() call{prompts.length !== 1 ? 's' : ''} detected
+              {prompts.length} input() call
+              {prompts.length !== 1 ? 's' : ''} detected
             </span>
           </div>
           <div className="input-fields">

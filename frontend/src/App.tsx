@@ -173,7 +173,8 @@ export default function App() {
       })
     }
 
-    if (result?.error?.line && !step) {
+    const onLastStep = !step || stepIndex >= totalSteps - 1
+    if (result?.error?.line && onLastStep) {
       decorations.push({
         range: new monaco.Range(
           result.error.line,
@@ -193,13 +194,14 @@ export default function App() {
       decorationsRef.current,
       decorations,
     )
-  }, [step, result])
+  }, [step, result, stepIndex, totalSteps])
 
   const run = useCallback(async () => {
     setLoading(true)
     setRequestError(null)
     try {
-      const body: Record<string, unknown> = { code, stdin }
+      const trimmedStdin = stdin.replace(/\n+$/, '')
+      const body: Record<string, unknown> = { code, stdin: trimmedStdin }
       const parsedSeed = seed.trim() ? parseInt(seed.trim(), 10) : null
       if (parsedSeed !== null && !Number.isNaN(parsedSeed)) {
         body.seed = parsedSeed
@@ -261,6 +263,13 @@ export default function App() {
       ? step.frames[step.frames.length - 1].name
       : undefined
 
+  const lastStep =
+    result && result.steps.length > 0
+      ? result.steps[result.steps.length - 1]
+      : null
+  const consumedInputCount = lastStep?.stdinConsumed.length ?? 0
+  const needsMoreInput = result?.error?.type === 'EOFError'
+
   return (
     <div className="app">
       <header className="topbar">
@@ -304,6 +313,8 @@ export default function App() {
           onEditorMount={onEditorMount}
           isLoading={loading}
           onRun={run}
+          consumedInputCount={consumedInputCount}
+          needsMoreInput={needsMoreInput}
         />
 
         <section className="pane trace-pane">

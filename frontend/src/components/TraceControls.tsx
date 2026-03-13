@@ -23,7 +23,7 @@ export function TraceControls({ currentIndex, totalSteps, onIndexChange }: Props
 
   const goFirst = useCallback(() => { setPlaying(false); onIndexChange(0) }, [onIndexChange])
   const goPrev = useCallback(() => { setPlaying(false); onIndexChange(Math.max(0, currentIndex - 1)) }, [onIndexChange, currentIndex])
-  const goNext = useCallback(() => onIndexChange(Math.min(totalSteps - 1, currentIndex + 1)), [onIndexChange, currentIndex, totalSteps])
+  const goNext = useCallback(() => { setPlaying(false); onIndexChange(Math.min(totalSteps - 1, currentIndex + 1)) }, [onIndexChange, currentIndex, totalSteps])
   const goLast = useCallback(() => { setPlaying(false); onIndexChange(Math.max(0, totalSteps - 1)) }, [onIndexChange, totalSteps])
 
   useEffect(() => {
