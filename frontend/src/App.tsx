@@ -172,8 +172,6 @@ export default function App() {
         },
       })
     }
-    decorationsRef.current = ed.deltaDecorations(decorationsRef.current, decorations)
-  }, [step])
 
     if (result?.error?.line && !step) {
       decorations.push({
