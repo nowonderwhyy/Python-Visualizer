@@ -15,20 +15,21 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 2px;
+  padding: 2px 2px;
   flex-shrink: 0;
 }
 
 .topbar__title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-1);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .topbar__actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
 }
 
 .workspace {
@@ -85,7 +86,7 @@
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
 .btn:hover:not(:disabled) {
@@ -139,7 +140,7 @@
 /* ── Seed input ── */
 
 .seed-input {
-  width: 64px;
+  width: 56px;
   font-family: var(--mono);
   font-size: 11px;
   text-align: center;
@@ -164,6 +165,8 @@
 .editor-wrap .overflow-guard {
   border-radius: 0;
 }
+
+/* ── Input fields ── */
 
 .stdin-section {
   border-top: 1px solid var(--border);
@@ -228,16 +231,13 @@
   font-family: var(--mono);
   font-size: 12px;
   min-width: 0;
+  transition: border-color 0.12s;
 }
 
 .input-field__value:focus {
   outline: 2px solid var(--accent-emphasis);
   outline-offset: -1px;
   border-color: transparent;
-}
-
-.input-field__value::placeholder {
-  color: var(--text-3);
 }
 
 .btn--add {
@@ -297,16 +297,13 @@
   color: var(--text-1);
   font-family: var(--sans);
   font-size: 12px;
+  transition: border-color 0.12s;
 }
 
 .fb__search:focus {
   outline: 2px solid var(--accent-emphasis);
   outline-offset: -1px;
   border-color: transparent;
-}
-
-.fb__search::placeholder {
-  color: var(--text-3);
 }
 
 .fb__list {
@@ -328,10 +325,20 @@
   cursor: pointer;
   text-align: left;
   gap: 12px;
+  transition: background 0.1s;
 }
 
 .fb__item:hover {
   background: var(--surface-hover);
+}
+
+.fb__item--active {
+  background: var(--accent-subtle);
+  border-left: 2px solid var(--accent);
+}
+
+.fb__item--active:hover {
+  background: var(--accent-subtle);
 }
 
 .fb__item + .fb__item {
@@ -468,6 +475,7 @@
   background: var(--accent);
   border: 2px solid var(--surface);
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .trace-nav__slider::-moz-range-thumb {
@@ -477,6 +485,7 @@
   background: var(--accent);
   border: 2px solid var(--surface);
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .trace-nav__slider:disabled {
@@ -521,6 +530,7 @@
   color: var(--red);
   font-size: 12px;
   font-family: var(--mono);
+  line-height: 1.4;
 }
 
 /* ── Legend ── */
@@ -565,6 +575,7 @@
   font-family: var(--mono);
   font-size: 10px;
   color: var(--text-3);
+  opacity: 0.7;
 }
 
 /* ── Empty state ── */
@@ -583,7 +594,7 @@
 .trace-empty__icon {
   font-size: 28px;
   color: var(--text-3);
-  opacity: 0.4;
+  opacity: 0.3;
 }
 
 .trace-empty__title {
@@ -847,6 +858,7 @@
   gap: 8px;
   padding: 5px 10px;
   border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.1s;
 }
 
 .var-row:last-child {

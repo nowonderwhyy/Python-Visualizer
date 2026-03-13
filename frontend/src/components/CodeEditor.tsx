@@ -57,12 +57,7 @@ export function CodeEditor({
   const minFromRun = needsMoreInput
     ? consumedInputCount + 1
     : consumedInputCount
-  const baseCount = Math.max(prompts.length, minFromRun)
-  const lastLineHasContent =
-    stdinLines.length >= baseCount &&
-    stdinLines[stdinLines.length - 1]?.trim() !== ''
-  const fieldCount =
-    Math.max(baseCount, stdinLines.length) + (lastLineHasContent ? 1 : 0)
+  const fieldCount = Math.max(prompts.length, minFromRun, stdinLines.length)
 
   const updateField = useCallback(
     (index: number, value: string) => {
@@ -135,7 +130,6 @@ export function CodeEditor({
                   className="input-field__value"
                   value={stdinLines[i] ?? ''}
                   onChange={(e) => updateField(i, e.target.value)}
-                  placeholder="\u2026"
                 />
               </div>
             ))}

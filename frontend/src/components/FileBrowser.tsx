@@ -9,11 +9,18 @@ export type PyFile = {
 type Props = {
   files: PyFile[]
   folderName: string
-  onSelect: (file: File) => void
+  activePath: string | null
+  onSelect: (file: File, path: string) => void
   onClose: () => void
 }
 
-export function FileBrowser({ files, folderName, onSelect, onClose }: Props) {
+export function FileBrowser({
+  files,
+  folderName,
+  activePath,
+  onSelect,
+  onClose,
+}: Props) {
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
@@ -54,11 +61,12 @@ export function FileBrowser({ files, folderName, onSelect, onClose }: Props) {
         ) : (
           filtered.map((f) => {
             const displayPath = f.path.split('/').slice(1).join('/')
+            const isActive = f.path === activePath
             return (
               <button
                 key={f.path}
-                className="fb__item"
-                onClick={() => onSelect(f.file)}
+                className={`fb__item${isActive ? ' fb__item--active' : ''}`}
+                onClick={() => onSelect(f.file, f.path)}
                 type="button"
               >
                 <span className="fb__item-name">{f.name}</span>

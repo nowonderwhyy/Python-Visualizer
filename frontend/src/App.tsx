@@ -106,6 +106,7 @@ export default function App() {
   const [pyFiles, setPyFiles] = useState<PyFile[]>([])
   const [folderName, setFolderName] = useState('')
   const [showFileBrowser, setShowFileBrowser] = useState(false)
+  const [activeFilePath, setActiveFilePath] = useState<string | null>(null)
 
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null)
@@ -144,14 +145,14 @@ export default function App() {
   )
 
   const loadFile = useCallback(
-    async (file: File) => {
+    async (file: File, path: string) => {
       const text = await file.text()
       setCode(text)
       setStdin('')
       setResult(null)
       setRequestError(null)
       setStepIndex(0)
-      setShowFileBrowser(false)
+      setActiveFilePath(path)
     },
     [],
   )
@@ -383,6 +384,7 @@ export default function App() {
               <FileBrowser
                 files={pyFiles}
                 folderName={folderName}
+                activePath={activeFilePath}
                 onSelect={loadFile}
                 onClose={() => setShowFileBrowser(false)}
               />
